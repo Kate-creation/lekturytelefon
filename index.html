@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-size: cover;
+            background-position: center;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Zmień na flex-start, aby elementy zaczynały się od góry */
+            height: 100vh;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            flex-direction: column;
+        }
+        #title-panel {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px; /* Dodaj margines dolny, aby oddzielić od reszty treści */
+        }
+        #quiz-container {
+            max-height: calc(100vh - 100px); /* Upewnij się, że quiz nie przekracza dostępnej wysokości, odejmując wysokość nagłówka */
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+        .question {
+            margin-bottom: 15px;
+        }
+        .answer {
+            margin-bottom: 5px;
+        }
+        .answer label {
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            display: block;
+        }
+        .answer input:checked + label {
+            background-color: #ddd;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 200px;
+            box-sizing: border-box;
+            margin-top: 20px; /* Dodaj margines górny, aby oddzielić od quizu */
+        }
+        .quiz-controls {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        .quiz-controls button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .quiz-controls button:hover {
+            background-color: #f0f0f0;
+        }
+        #result {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Media Queries */
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+                justify-content: space-around;
+                align-items: center; /* Wyśrodkuj elementy w pionie dla większych ekranów */
+            }
+            .sidebar {
+                position: static;
+                transform: none;
+                top: auto;
+                right: auto;
+                margin-top: 0; /* Usuń margines górny na większych ekranach */
+            }
+            #quiz-container {
+                max-height: 80vh; /* Dostosuj maksymalną wysokość kontenera quizu na większych ekranach */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="title-panel">Quiz Lektury Hubcio</div>
+    <div id="quiz-container"></div>
+    <div class="sidebar">
+        <div class="quiz-controls">
+            <button onclick="checkAnswers()">Sprawdź odpowiedzi</button>
+            <button onclick="retryQuiz()">Spróbuj ponownie</button>
+            <button onclick="refreshPage()">Odśwież</button>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const allQuestions = [
+    { question: "Jakie wydarzenia mają miejsce w Wigilię Bożego Narodzenia w życiu Ebenezera Scrooge’a w „Opowieści wigilijnej”?", answers: ["Scrooge organizuje przyjęcie dla rodziny.", "Scrooge odwiedzają trzy duchy.", "Scrooge wyjeżdża na wakacje."], correct: 1 },
+    { question: "Kto jest głównym bohaterem „Opowieści wigilijnej” Charlesa Dickensa i jakie ma cechy charakteru?", answers: ["Bob Cratchit, jest pracowity i radosny.", "Ebenezer Scrooge, jest skąpy i zgorzkniały.", "Fred, jest optymistyczny i hojny."], correct: 1 },
+    { question: "Jakie zmiany zachodzą w charakterze Ebenezera Scrooge’a po wizycie trzech duchów w „Opowieści wigilijnej”?", answers: ["Staje się jeszcze bardziej zgorzkniały.", "Staje się hojny i miły.", "Przeprowadza się do innego miasta."], correct: 1 },
+    { question: "Kto jest duchem przeszłych świąt Bożego Narodzenia w „Opowieści wigilijnej” i jakie wydarzenia z przeszłości pokazuje Scrooge’owi?", answers: ["Duch Jakuba Marleya, pokazuje Scrooge’owi jego przyszłość.", "Duch przeszłych świąt, pokazuje Scrooge’owi jego dzieciństwo.", "Duch teraźniejszych świąt, pokazuje Scrooge’owi teraźniejsze święta."], correct: 1 },
+    { question: "Jakie wydarzenia z teraźniejszości ukazuje duch teraźniejszych świąt Bożego Narodzenia w „Opowieści wigilijnej”?", answers: ["Przyjęcie u Freda i życie rodziny Cratchitów.", "Ślub Scrooge’a.", "Śmierć Ebenezera Scrooge’a."], correct: 0 },
+    { question: "Co ważnego ukazuje duch przyszłych świąt Bożego Narodzenia w wizji Scrooge’a w „Opowieści wigilijnej”?", answers: ["Scrooge’a jako bogatego człowieka.", "Śmierć Tiny’ego Tima i samotną śmierć Scrooge’a.", "Scrooge’a jako szczęśliwego człowieka."], correct: 1 },
+    { question: "Jakie uczucia towarzyszą Scrooge’owi podczas wizyty duchów w „Opowieści wigilijnej”?", answers: ["Radość i spokój.", "Strach i refleksja.", "Złość i gniew."], correct: 1 },
+    { question: "Jakie zmiany w postawie życiowej Ebenezera Scrooge’a następują na skutek wizyt duchów w „Opowieści wigilijnej”?", answers: ["Staje się bardziej zamknięty w sobie.", "Zaczyna dbać o innych i jest hojny.", "Przestaje pracować i wyjeżdża."], correct: 1 },
+    { question: "Jakie jest znaczenie Bożego Narodzenia dla Ebenezera Scrooge’a na końcu „Opowieści wigilijnej”?", answers: ["Jest to czas straty i smutku.", "Jest to czas radości i dzielenia się z innymi.", "Jest to czas pracy i zarabiania pieniędzy."], correct: 1 },
+    { question: "Jakie zmiany w relacjach Scrooge’a z rodziną i pracownikami zachodzą po jego przemianie w „Opowieści wigilijnej”?", answers: ["Staje się bardziej odległy i wymagający.", "Zaczyna się lepiej dogadywać i wspierać innych.", "Przestaje kontaktować się z rodziną."], correct: 1 },
+    { question: "Kim są główni bohaterowie „Kamieni na szaniec” Aleksandra Kamińskiego i jakie mają pseudonimy?", answers: ["Janek, Marek i Piotr - pseudonimy: Jastrząb, Wilk, Lis.", "Tadeusz, Andrzej i Robert - pseudonimy: Orzeł, Niedźwiedź, Sokół.", "Tadeusz Zawadzki „Zośka”, Jan Bytnar „Rudy”, Aleksy Dawidowski „Alek”."], correct: 2 },
+    { question: "Jakie wydarzenia prowadzą do rozpoczęcia działalności konspiracyjnej przez Zośkę, Alka i Rudego w „Kamieniach na szaniec”?", answers: ["Wyjazd za granicę.", "Wybuch II wojny światowej i okupacja Warszawy.", "Ukończenie szkoły średniej."], correct: 1 },
+    { question: "Co oznacza słowo „zuchwałość” w kontekście „Kamieni na szaniec” i jak przejawia się w działaniach bohaterów?", answers: ["Zuchwałość to nieodpowiedzialność, przejawia się w unikaniu obowiązków.", "Zuchwałość to odwaga i bezkompromisowość, przejawia się w walce z okupantem.", "Zuchwałość to lekkomyślność, przejawia się w nieprzemyślanych decyzjach."], correct: 1 },
+    { question: "Jakie jest znaczenie „Kamieni na szaniec” w kontekście II wojny światowej?", answers: ["Jest to opowieść o życiu na froncie wschodnim.", "Jest to historia młodych ludzi walczących w konspiracji.", "Jest to opis życia w obozie koncentracyjnym."], correct: 1 },
+    { question: "Jakie cechy charakteru wyróżniają Zośkę, Alka i Rudego w „Kamieniach na szaniec”?", answers: ["Egoizm i brak empatii.", "Odwaga, lojalność i przyjaźń.", "Chciwość i zdrada."], correct: 1 },
+    { question: "Jakie wydarzenia są kluczowe dla rozwoju akcji w „Kamieniach na szaniec”?", answers: ["Ucieczka z Polski.", "Akcje sabotażowe i walka z okupantem.", "Podróż do Anglii."], correct: 1 },
+    { question: "Jakie dylematy moralne napotykają bohaterowie „Kamieni na szaniec” podczas okupacji?", answers: ["Czy zdradzić przyjaciół dla korzyści osobistych.", "Czy walczyć z okupantem narażając życie swoje i bliskich.", "Czy wyjechać z kraju czy zostać."], correct: 1 },
+    { question: "Co wydarzyło się podczas akcji pod Arsenałem opisanej w „Kamieniach na szaniec” i jakie miało to konsekwencje?", answers: ["Ucieczka z więzienia i uratowanie Rudego.", "Zdobycie tajnych dokumentów.", "Zniszczenie mostu kolejowego."], correct: 0 },
+    { question: "Jakie wartości kierują Zośką, Alkiem i Rudym podczas ich działalności konspiracyjnej w „Kamieniach na szaniec”?", answers: ["Pieniądze i sława.", "Patriotyzm, odwaga i przyjaźń.", "Władza i kontrola."], correct: 1 },
+    { question: "Jakie przesłanie ma książka „Kamienie na szaniec” w kontekście patriotyzmu i odwagi?", answers: ["Że warto unikać ryzyka i dbać tylko o własne interesy.", "Że warto walczyć o wolność i wartości nawet w obliczu zagrożenia.", "Że należy zawsze słuchać starszych i bardziej doświadczonych."], correct: 1 },
+    { question: "Jakie uczucia wyraża Jan Kochanowski w „Hymnie”?", answers: ["Smutek i przygnębienie.", "Radość i wdzięczność.", "Złość i frustracja."], correct: 1 },
+    { question: "Co jest głównym tematem „Trenów” Kochanowskiego i jakie emocje towarzyszą autorowi w „Trenie I”?", answers: ["Miłość i radość.", "Żałoba po stracie córki i smutek.", "Złość i gniew."], correct: 1 },
+    { question: "Jakie wątki są poruszane w „Trenie V” Kochanowskiego i jakie refleksje na temat śmierci wyraża poeta?", answers: ["Temat przemijania i ulotności życia.", "Temat miłości i szczęścia.", "Temat wojny i pokoju."], correct: 0 },
+    { question: "Jakie motywy i uczucia są obecne w „Trenie VII” i jak odnosi się do swojej straty Jan Kochanowski?", answers: ["Radość i wdzięczność.", "Ból i żal po stracie córki.", "Złość i gniew na los."], correct: 1 },
+    { question: "Jakie pytania stawia poeta w „Trenie VIII” i jakie są jego odpowiedzi w kontekście żalu?", answers: ["Pytania o sens życia, odpowiedzi pełne nadziei.", "Pytania o sens śmierci, odpowiedzi pełne żalu.", "Pytania o miłość, odpowiedzi pełne radości."], correct: 1 },
+    { question: "Jakie są główne przesłania zawarte w „Pieśni IX” Kochanowskiego?", answers: ["Radość życia i docenianie chwili.", "Smutek i przygnębienie.", "Złość i gniew."], correct: 0 },
+    { question: "W jaki sposób Jan Kochanowski przedstawia śmierć i żal w swoich „Trenach”?", answers: ["Jako coś nieistotnego i błahego.", "Jako głębokie doświadczenie życiowe pełne bólu.", "Jako radosne wydarzenie."], correct: 1 },
+    { question: "Jakie wartości są podkreślane w „Hymnie” Kochanowskiego?", answers: ["Pokora i wdzięczność wobec Boga.", "Złość i frustracja.", "Ambicja i dążenie do władzy."], correct: 0 },
+    { question: "Jakie zmiany w postawie autora wobec życia i śmierci można zauważyć w „Trenach”?", answers: ["Od obojętności do głębokiego zrozumienia i akceptacji.", "Od radości do smutku i przygnębienia.", "Od złości do gniewu."], correct: 0 },
+    { question: "Jakie znaczenie mają „Treny” w kontekście osobistej tragedii Kochanowskiego?", answers: ["Są wyrazem radości z życia.", "Są głębokim wyrazem żalu po stracie córki.", "Są manifestem politycznym."], correct: 1 },
+    { question: "Kim jest Mały Książę i skąd pochodzi w książce Antoine'a de Saint-Exupéry?", answers: ["Mały Książę jest pilotem z Ziemi.", "Mały Książę jest chłopcem z planety B-612.", "Mały Książę jest królem z odległej galaktyki."], correct: 1 },
+    { question: "Jakie planety odwiedza Mały Książę i jakie postacie spotyka na każdej z nich w „Małym Księciu”?", answers: ["Planetę Króla, Planetę Próżnego, Planetę Pijaka, Planetę Bankiera, Planetę Latarnika, Planetę Geografa.", "Planetę Króla, Planetę Naukowca, Planetę Artysty.", "Planetę Żołnierza, Planetę Rolnika, Planetę Kupca."], correct: 0 },
+    { question: "Jakie nauki Mały Książę wynosi z odwiedzin poszczególnych planet w „Małym Księciu”?", answers: ["Że najważniejsze są pieniądze i władza.", "Że każdy dorosły ma swoje dziwactwa i że najważniejsze jest to, co niewidoczne dla oczu.", "Że najlepiej jest być samolubnym i nie ufać nikomu."], correct: 1 },
+    { question: "Co symbolizuje różowa róża w „Małym Księciu” i jaki ma wpływ na Małego Księcia?", answers: ["Róża symbolizuje miłość i odpowiedzialność, uczy Małego Księcia, jak ważne jest dbanie o relacje.", "Róża symbolizuje bogactwo i sukces, motywuje Małego Księcia do zdobywania władzy.", "Róża symbolizuje smutek i stratę, uczy Małego Księcia o przemijaniu."], correct: 0 },
+    { question: "Jakie cechy charakteru ma Mały Książę i jak wpływają one na jego podróż?", answers: ["Jest egoistyczny i złośliwy, co prowadzi do konfliktów.", "Jest ciekawy i wrażliwy, co pozwala mu na poznawanie nowych rzeczy i ludzi.", "Jest leniwy i obojętny, co utrudnia mu podróż."], correct: 1 },
+    { question: "Jaką rolę odgrywa lis w książce „Mały Książę” i jakie przesłanie przekazuje Małemu Księciu?", answers: ["Lis jest wrogiem, który uczy Małego Księcia nieufności.", "Lis jest przewodnikiem, który uczy Małego Księcia, że najważniejsze jest to, co niewidoczne dla oczu.", "Lis jest przyjacielem, który uczy Małego Księcia, jak zdobywać bogactwo."], correct: 1 },
+    { question: "Jakie są główne motywy i przesłania zawarte w „Małym Księciu”?", answers: ["Dążenie do władzy i bogactwa.", "Ważność przyjaźni, miłości i odpowiedzialności.", "Samotność i izolacja."], correct: 1 },
+    { question: "Co symbolizuje każda z postaci, które Mały Książę spotyka podczas swojej podróży?", answers: ["Król symbolizuje władzę, Próżny - próżność, Pijak - uzależnienie, Bankier - materializm, Latarnik - obowiązkowość, Geograf - wiedzę teoretyczną.", "Król symbolizuje mądrość, Próżny - miłość, Pijak - radość, Bankier - szczęście, Latarnik - wolność, Geograf - przyjaźń.", "Król symbolizuje strach, Próżny - smutek, Pijak - gniew, Bankier - biedę, Latarnik - lenistwo, Geograf - ignorancję."], correct: 0 },
+    { question: "Jakie wartości są podkreślane w relacji Małego Księcia z jego różą?", answers: ["Egoizm i niezależność.", "Miłość, odpowiedzialność i troska.", "Zazdrość i rywalizacja."], correct: 1 },
+    { question: "Co Mały Książę dowiaduje się o sobie i o świecie podczas swojej podróży w „Małym Księciu”?", answers: ["Że najważniejsze są pieniądze i władza.", "Że najważniejsze jest to, co niewidoczne dla oczu, oraz znaczenie miłości i przyjaźni.", "Że najlepiej jest być samolubnym i nie ufać nikomu."], correct: 1 },
+    { question: "Kto jest główną bohaterką „Żony modnej” Ignacego Krasickiego i jakie są jej cechy charakterystyczne?", answers: ["Anna, jest skromna i pracowita.", "Żona modna, jest próżna i zafascynowana modą.", "Maria, jest mądra i oszczędna."], correct: 1 },
+    { question: "Jakie są główne cechy charakteru męża bohaterki „Żony modnej” i jak odnosi się on do żony?", answers: ["Jest cierpliwy i wyrozumiały, stara się spełniać wszystkie zachcianki żony.", "Jest surowy i wymagający, często krytykuje żonę.", "Jest obojętny i nie interesuje go życie żony."], correct: 0 },
+    { question: "Jakie zmiany w zachowaniu żony są opisane w „Żonie modnej”?", answers: ["Staje się bardziej oszczędna i skromna.", "Zaczyna interesować się domem i rodziną.", "Staje się coraz bardziej kapryśna i rozrzutna."], correct: 2 },
+    { question: "Co ironiczne jest w postawie żony modnej w odniesieniu do jej męża i społeczeństwa w „Żonie modnej”?", answers: ["Że mimo swojej próżności i dążenia do nowoczesności, nie potrafi zrozumieć prawdziwych wartości.", "Że jest bardzo oszczędna, mimo że mąż jest bogaty.", "Że jest bardzo tradycyjna, mimo że mąż chce być nowoczesny."], correct: 0 },
+    { question: "Jakie są najważniejsze przesłania „Żony modnej”?", answers: ["Krytyka próżności i powierzchowności.", "Promowanie nowoczesnego stylu życia.", "Zachęta do oszczędzania i pracy."], correct: 0 },
+    { question: "W jaki sposób Krasicki krytykuje modę i jej wpływ na ludzi w „Żonie modnej”?", answers: ["Pokazuje, jak moda może prowadzić do ekonomicznego dobrobytu.", "Ukazuje, jak moda prowadzi do zaniedbania prawdziwych wartości i problemów.", "Opisuje modę jako źródło inspiracji i kreatywności."], correct: 1 },
+    { question: "Jakie cechy charakteru posiadają inne postacie w „Żonie modnej”?", answers: ["Są pracowite i oszczędne.", "Są próżne i zafascynowane nowinkami.", "Są tradycyjne i konserwatywne."], correct: 1 },
+    { question: "Jakie są najważniejsze wydarzenia w życiu bohaterki „Żony modnej”?", answers: ["Jej liczne podróże i zakupy.", "Jej rozwój kariery zawodowej.", "Jej działalność charytatywna."], correct: 0 },
+    { question: "Jakie wartości społeczne są poddane krytyce w „Żonie modnej”?", answers: ["Pracowitość i oszczędność.", "Powierzchowność i dążenie do pozorów.", "Tradycjonalizm i konserwatyzm."], correct: 1 },
+    { question: "Jakie wady społeczne są uwypuklane w postawie głównej bohaterki „Żony modnej”?", answers: ["Skromność i pokora.", "Próżność i materializm.", "Uczciwość i lojalność."], correct: 1 },
+    { question: "Kim jest Ordon i jakie wydarzenia opisuje „Reduta Ordona” Mickiewicza?", answers: ["Ordon jest bohaterem narodowym, a utwór opisuje obronę Warszawy.", "Ordon jest dowódcą wojsk, a utwór opisuje bitwę pod Grunwaldem.", "Ordon jest poetą, a utwór opisuje jego twórczość."], correct: 0 },
+    { question: "Jakie są główne cechy charakteru Pułkownika w „Śmierci Pułkownika” Mickiewicza?", answers: ["Jest tchórzliwy i niepewny.", "Jest odważny i honorowy.", "Jest arogancki i dumny."], correct: 1 },
+    { question: "Jakie wątki i motywy są obecne w „Świteziance” Mickiewicza?", answers: ["Miłość, zdrada i kara.", "Wojna, pokój i pojednanie.", "Przyjaźń, lojalność i zdrada."], correct: 0 },
+    { question: "Jakie wydarzenia przedstawione są w II części „Dziadów” Mickiewicza?", answers: ["Obrzędy dziadów i przywoływanie duchów.", "Bitwa pod Grunwaldem.", "Ślub i wesele."], correct: 0 },
+    { question: "Jakie są główne motywy i przesłania „Stepów Akermańskich” Mickiewicza?", answers: ["Tęsknota za ojczyzną i piękno natury.", "Walka o wolność i niepodległość.", "Miłość i zdrada."], correct: 0 },
+    { question: "Co symbolizują lilie w „Lilijach” Mickiewicza?", answers: ["Niewinność i czystość.", "Zdradę i morderstwo.", "Miłość i szczęście."], correct: 1 },
+    { question: "Jakie są główne przesłania inwokacji w „Panu Tadeuszu” Mickiewicza?", answers: ["Tęsknota za utraconą ojczyzną i miłość do Polski.", "Radość z życia i docenianie chwili.", "Złość na wrogów i chęć zemsty."], correct: 0 },
+    { question: "Jakie wydarzenia mają miejsce w „Reducie Ordona” i jakie jest ich znaczenie w kontekście historii Polski?", answers: ["Obrona Warszawy przed Rosjanami, symbolizuje bohaterstwo i poświęcenie.", "Bitwa pod Grunwaldem, symbolizuje zwycięstwo i triumf.", "Powstanie listopadowe, symbolizuje klęskę i zniszczenie."], correct: 0 },
+    { question: "Jakie są różnice w przedstawieniu bohaterów i wydarzeń w „Śmierci Pułkownika” i „Reducie Ordona” Mickiewicza?", answers: ["„Śmierć Pułkownika” skupia się na indywidualnym bohaterze, „Reduta Ordona” na zbiorowym wysiłku.", "„Śmierć Pułkownika” opisuje triumf, „Reduta Ordona” klęskę.", "„Śmierć Pułkownika” jest o miłości, „Reduta Ordona” o wojnie."], correct: 0 },
+    { question: "Jak Mickiewicz przedstawia polską historię i kulturę w „Panu Tadeuszu” (inwokacja)?", answers: ["Jako pełną konfliktów i wojen.", "Jako piękną i godną tęsknoty.", "Jako nieistotną i zapomnianą."], correct: 1 }
+];
+
+        const backgrounds = [
+            "https://img.freepik.com/darmowe-zdjecie/wyglad-planety-z-kreskowek-z-astronauta_23-2151699377.jpg?t=st=1723228868~exp=1723232468~hmac=3ca7f6887e0a08d34d7c56f0b32e748adbf3bb95db86989a41773aed722d1133&w=900",
+            "https://img.freepik.com/premium-photo/cartoon-space-planets-sky-stars_853115-5523.jpg?w=740",
+            "https://img.freepik.com/darmowe-zdjecie/dinozaur-sauropod-w-przyrodzie_23-2151535135.jpg?t=st=1723207829~exp=1723211429~hmac=aa00384265b5ca5b65de744ec4d68b0e0de5176e1fa17e512833d3e4bfaaac70&w=1380",
+            "https://img.freepik.com/darmowe-zdjecie/smoki-i-obraz-sztucznej-inteligencji-fantasy_23-2150400900.jpg?t=st=1723207887~exp=1723211487~hmac=128d0152cd0d967d2810d633a83458d59032d0b47a08c644aec716658f1ce25e&w=1060",
+            "https://img.freepik.com/darmowe-zdjecie/smoki-i-obraz-sztucznej-inteligencji-fantasy_23-2150400927.jpg?t=st=1723207930~exp=1723211530~hmac=361f751813a67929a1c7a44dec18dd3f3120f9244fde6e267323da7312b67c4a&w=1060",
+            "https://img.freepik.com/darmowe-zdjecie/smoki-i-obraz-sztucznej-inteligencji-fantasy_23-2150400898.jpg?t=st=1723207906~exp=1723211506~hmac=5234e5a3033c447b874304846604e07df74c610445486b29fca5b708725da548&w=1060",
+            "https://img.freepik.com/free-photo/milky-way-full-stars-space_181624-2599.jpg?t=st=1723240100~exp=1723243700~hmac=e0b7f0fa78224228074c57e124f3766b84abbcec34e086284484abfc427c311a&w=1060",
+            "https://img.freepik.com/free-photo/galaxy-planets-digital-art_23-2151727730.jpg?t=st=1723240470~exp=1723244070~hmac=22b62d87111d55c902b2be0d97a46d46449aac8443f2495e5caa270b83b15bca&w=360",
+            "https://img.freepik.com/free-photo/galaxy-planets-digital-art_23-2151727643.jpg?t=st=1723240517~exp=1723244117~hmac=7e2a9d0325f239e5084f7177f60a890cfd3e82783630ec5862e1f5ddd0438785&w=900",
+            "https://img.freepik.com/free-photo/fun-trex-3d-illustration_183364-81263.jpg?t=st=1723240568~exp=1723244168~hmac=11c6e2d37345fb76ea1262594abca36d8f10e08e1554ced2c8ac84f5a28f6b9d&w=360",
+            "https://img.freepik.com/free-photo/rock-wall_8327-164.jpg?t=st=1723240674~exp=1723244274~hmac=2a84c5b5e325fdcce857bbb5774079a85a9605203d3be7b5aa6d73680c867b20&w=1060"
+        ];
+        
+        let currentQuestions = [];
+
+        function getRandomQuestions() {
+            return allQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
+        }
+
+        function setTextColorBasedOnBackground(imageUrl) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = imageUrl;
+
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+
+                const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                let r = 0, g = 0, b = 0;
+
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    r += imageData.data[i];
+                    g += imageData.data[i + 1];
+                    b += imageData.data[i + 2];
+                }
+
+                const pixelCount = img.width * img.height;
+                r = r / pixelCount;
+                g = g / pixelCount;
+                b = b / pixelCount;
+
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+                document.body.style.color = brightness > 128 ? '#000' : '#fff';
+            };
+        }
+
+        function refreshBackground() {
+            const randomIndex = Math.floor(Math.random() * backgrounds.length);
+            const selectedBackground = backgrounds[randomIndex];
+            document.body.style.backgroundImage = `url(${selectedBackground})`;
+            setTextColorBasedOnBackground(selectedBackground);
+        }
+
+        function loadQuestions() {
+            const quizContainer = document.getElementById('quiz-container');
+            quizContainer.innerHTML = currentQuestions.map((q, index) => `
+                <div class="question">
+                    <p>${index + 1}. ${q.question}</p>
+                    ${q.answers.map((answer, i) => `
+                        <div class="answer">
+                            <input type="radio" name="question${index}" id="question${index}answer${i}" value="${i}">
+                            <label for="question${index}answer${i}">${answer}</label>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        function checkAnswers() {
+            const resultContainer = document.getElementById('result');
+            let score = 0;
+
+            currentQuestions.forEach((question, qIndex) => {
+                const selectedAnswer = document.querySelector(`input[name="question${qIndex}"]:checked`);
+                if (selectedAnswer) {
+                    const selectedValue = parseInt(selectedAnswer.value);
+                    const correctAnswer = question.correct;
+
+                    const answerLabels = document.querySelectorAll(`input[name="question${qIndex}"] + label`);
+                    answerLabels.forEach((label, aIndex) => {
+                        if (aIndex === correctAnswer) {
+                            label.classList.add('correct');
+                            label.classList.add('underline');
+                        } else if (aIndex === selectedValue) {
+                            label.classList.add('incorrect');
+                        }
+                    });
+
+                    if (selectedValue === correctAnswer) {
+                        score++;
+                    }
+                }
+            });
+
+            const motivationalMessage = getMotivationalMessage(score);
+            resultContainer.innerHTML = `Wynik: ${score}/10<br>${motivationalMessage}`;
+        }
+
+        function getMotivationalMessage(score) {
+            if (score === 10) {
+                return "Świetna robota! Jesteś Mistrzem! Kochamy Cię!";
+            } else if (score >= 7) {
+                return "Bardzo dobrze! Wymiatasz! Jesteśmy z Ciebie dumni";
+            } else if (score >= 5) {
+                return "Nieźle! Dajesz radę! Buziaki ";
+            } else {
+                return "Nic się nie stało Hubcio! Próbuj dalej! Potrafisz";
+            }
+        }
+
+        function retryQuiz() {
+            document.querySelectorAll('.answer label').forEach(label => {
+                label.classList.remove('correct', 'incorrect', 'underline');
+            });
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.checked = false;
+            });
+            document.getElementById('result').innerHTML = ""; // Zresetuj wynik
+        }
+
+        function refreshPage() {
+            refreshBackground();
+            currentQuestions = getRandomQuestions();
+            loadQuestions();
+        }
+
+        // Load initial questions and background
+        refreshBackground();
+        currentQuestions = getRandomQuestions();
+        loadQuestions();
+    </script>
+</body>
+</html>
